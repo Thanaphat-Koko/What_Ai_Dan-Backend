@@ -6,6 +6,12 @@ import os
 
 from ocr import *
 
+import pytesseract
+import re
+
+from pytesseract import Output
+import easyocr
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -29,7 +35,10 @@ def upload_image():
         if img is None:
             return jsonify({"error": "Could not decode image"}), 400
  #=============================================================================================       
+        original = img.copy()
         resize_ratio = 500 / img.shape[0]
+        
+        # print(img.shape[0])
 
         img = opencv_resize(img, resize_ratio)
 
@@ -46,12 +55,50 @@ def upload_image():
         # image_with_largest_contours = cv2.drawContours(gray_img, largest_contours, -1, (0,255,0), 3)
 
         receipt_contour = get_receipt_contour(largest_contours)
-        image_with_receipt_contour = cv2.drawContours(gray_img, [receipt_contour], -1, (0, 255, 0), 2)
+        image_with_receipt_contour = cv2.drawContours(img.copy(), [receipt_contour], -1, (0, 255, 0), 2)
 
-        scanned = wrap_perspective(img.copy(), contour_to_rect(receipt_contour, resize_ratio))
+        print(contour_to_rect(receipt_contour, resize_ratio))
+        scanned = wrap_perspective(original.copy(), contour_to_rect(receipt_contour, resize_ratio))
+
+        n_gray = cv2.cvtColor(scanned, cv2.COLOR_BGR2GRAY)
+        n_gray = cv2.GaussianBlur(n_gray, (5,5), 1)
+
+        High_val_img = n_gray[60:190, 100:372]
+        Low_val_img = n_gray[198:323, 100:372]
+        Pulse_val_img = n_gray[335:435, 100:372]
+
+        thres, res = cv2.threshold(High_val_img, 50 ,255,cv2.THRESH_BINARY_INV)
+        thres2, res2 = cv2.threshold(Low_val_img, 50 ,255,cv2.THRESH_BINARY_INV)
+        thres3, res3 = cv2.threshold(Pulse_val_img, 50 ,255,cv2.THRESH_BINARY_INV)
+
+        kernel = np.ones((5,5), np.uint8)
+        img_dilation3 = cv2.dilate(res3, kernel, iterations=2)
+
+        d = pytesseract.image_to_data(img_dilation3, output_type=Output.DICT)
+        n_boxes = len(d['level'])
+        boxes = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2RGB)
+        for i in range(n_boxes):
+            (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+            boxes = cv2.rectangle(boxes, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        extracted_text = pytesseract.image_to_string(img_dilation3)
+        print(extracted_text)
+        # output = Image.fromarray(boxes)
+
+        # output = Image.fromarray(img_dilation3)
+        # output.save('result.jpg')
+
+        # reader = easyocr.Reader(['en'], gpu = False)
+        # results = reader.readtext('result.jpg')
+        # for (bbox, text, prob) in results:
+        #     print(text)
+
 #=============================================================================================
+        # output = Image.fromarray(scanned)
+        # output.save('result.png')
+
         # Encode the image to a byte stream
-        _, buffer = cv2.imencode('.jpg', image_with_receipt_contour)
+        _, buffer = cv2.imencode('.jpg', boxs)
         byte_io = io.BytesIO(buffer)
 
         return send_file(byte_io, mimetype='image/jpeg')
