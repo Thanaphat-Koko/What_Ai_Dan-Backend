@@ -1,17 +1,12 @@
 import cv2
 from flask import Flask, request, jsonify, send_file
-from PIL import Image
 import io
 import os
+import easyocr
 
 from ocr import *
 
-import pytesseract
-import re
 
-from pytesseract import Output
-import easyocr
-import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -57,7 +52,7 @@ def upload_image():
         receipt_contour = get_receipt_contour(largest_contours)
         image_with_receipt_contour = cv2.drawContours(img.copy(), [receipt_contour], -1, (0, 255, 0), 2)
 
-        print(contour_to_rect(receipt_contour, resize_ratio))
+        # print(contour_to_rect(receipt_contour, resize_ratio))
         scanned = wrap_perspective(original.copy(), contour_to_rect(receipt_contour, resize_ratio))
 
         n_gray = cv2.cvtColor(scanned, cv2.COLOR_BGR2GRAY)
@@ -65,45 +60,53 @@ def upload_image():
 
         High_val_img = n_gray[60:190, 100:372]
         Low_val_img = n_gray[198:323, 100:372]
-        Pulse_val_img = n_gray[335:435, 100:372]
+        Pulse_val_img = n_gray[335:435, 200:372]
 
         thres, res = cv2.threshold(High_val_img, 50 ,255,cv2.THRESH_BINARY_INV)
         thres2, res2 = cv2.threshold(Low_val_img, 50 ,255,cv2.THRESH_BINARY_INV)
         thres3, res3 = cv2.threshold(Pulse_val_img, 50 ,255,cv2.THRESH_BINARY_INV)
 
         kernel = np.ones((5,5), np.uint8)
-        img_dilation3 = cv2.dilate(res3, kernel, iterations=2)
-
-        d = pytesseract.image_to_data(img_dilation3, output_type=Output.DICT)
-        n_boxes = len(d['level'])
-        boxes = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2RGB)
-        for i in range(n_boxes):
-            (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
-            boxes = cv2.rectangle(boxes, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        extracted_text = pytesseract.image_to_string(img_dilation3)
-        print(extracted_text)
-        # output = Image.fromarray(boxes)
+        img_dilation = cv2.dilate(res, kernel, iterations=2)
+        img_dilation2 = cv2.dilate(res2, kernel, iterations=2)
+        img_dilation3 = cv2.dilate(res3, np.ones((2,2), np.uint8), iterations=1)
 
         # output = Image.fromarray(img_dilation3)
         # output.save('result.jpg')
 
-        # reader = easyocr.Reader(['en'], gpu = False)
-        # results = reader.readtext('result.jpg')
-        # for (bbox, text, prob) in results:
-        #     print(text)
+        reader = easyocr.Reader(['en'], gpu = False)
+        high_results = reader.readtext(img_dilation)
+        low_results = reader.readtext(img_dilation2)
+        pulse_results = reader.readtext(img_dilation3)
+
+        for (bbox, text1, prob) in high_results:
+            print(text1)
+        for (bbox, text2, prob) in low_results:
+            print(text2)
+        for (bbox, text3, prob) in pulse_results:
+            print(text3)
 
 #=============================================================================================
         # output = Image.fromarray(scanned)
         # output.save('result.png')
 
         # Encode the image to a byte stream
-        _, buffer = cv2.imencode('.jpg', boxs)
+        _, buffer = cv2.imencode('.jpg', img_dilation3)
         byte_io = io.BytesIO(buffer)
 
         return send_file(byte_io, mimetype='image/jpeg')
+        # return send_value_back(text1, text2, text3)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+def send_value_back(high_val, low_val, pulse_val):
+    data = {
+        'High_value': high_val,
+        'Lower_value': low_val,
+        'Pluse': pulse_val
+    }
+    return jsonify(data)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
