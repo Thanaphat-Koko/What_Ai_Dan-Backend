@@ -70,3 +70,10 @@ def wrap_perspective(img, rect):
     M = cv2.getPerspectiveTransform(rect, dst)
     # warp the perspective to grab the screen
     return cv2.warpPerspective(img, M, (maxWidth, maxHeight))
+
+
+def calculate_accuracy(ground_truth, predictions):
+    total = len(ground_truth)
+    correct = sum(1 for gt, pred in zip(ground_truth, predictions) if gt.strip().lower() == pred.strip().lower())
+    accuracy = correct / total * 100
+    return accuracy

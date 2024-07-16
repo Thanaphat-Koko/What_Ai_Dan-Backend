@@ -7,7 +7,6 @@ import easyocr
 from ocr import *
 
 
-
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -71,8 +70,8 @@ def upload_image():
         img_dilation2 = cv2.dilate(res2, kernel, iterations=2)
         img_dilation3 = cv2.dilate(res3, np.ones((2,2), np.uint8), iterations=1)
 
-        # output = Image.fromarray(img_dilation3)
-        # output.save('result.jpg')
+        # # output = Image.fromarray(img_dilation3)
+        # # output.save('result.jpg')
 
         reader = easyocr.Reader(['en'], gpu = False)
         high_results = reader.readtext(img_dilation)
@@ -80,10 +79,13 @@ def upload_image():
         pulse_results = reader.readtext(img_dilation3)
 
         for (bbox, text1, prob) in high_results:
+            high_val = text1
             print(text1)
         for (bbox, text2, prob) in low_results:
+            low_val = text2
             print(text2)
         for (bbox, text3, prob) in pulse_results:
+            pulse_val = text3
             print(text3)
 
 #=============================================================================================
@@ -91,11 +93,11 @@ def upload_image():
         # output.save('result.png')
 
         # Encode the image to a byte stream
-        _, buffer = cv2.imencode('.jpg', img_dilation3)
-        byte_io = io.BytesIO(buffer)
+        # _, buffer = cv2.imencode('.jpg', High_val_img)
+        # byte_io = io.BytesIO(buffer)
 
-        return send_file(byte_io, mimetype='image/jpeg')
-        # return send_value_back(text1, text2, text3)
+        # return send_file(byte_io, mimetype='image/jpeg')
+        return send_value_back(high_val, low_val, pulse_val)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
