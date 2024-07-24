@@ -1,23 +1,20 @@
-ARG PYTHON_VERSION=3.10.5
-FROM python:${PYTHON_VERSION}-slim as base
+# start by pulling the python image
+FROM python:3.10-slim
 
+# copy the requirements file into the image
+COPY ./requirements.txt /app/requirements.txt
+
+# switch working directory
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx 
+# install the dependencies and packages in the requirements file
+RUN apt-get install python-opencv && \
+    pip install -r requirements.txt 
 
-# Copy the source code into the container.
-COPY . .
+# copy every content from the local file to the image
+COPY . /app
 
-RUN python3 -m venv env && \
-    chmod 744 env/bin/activate && \
-    ./env/bin/activate && \
-    # pip install opencv-python
-    pip install -r requirements.txt
+# configure the container to run in an executed manner
+ENTRYPOINT [ "python" ]
 
-
-# Expose the port that the application listens on.
-EXPOSE 5000
-
-# Run the application.
-CMD ["python3", "app.py"]
+CMD ["app.py" ]
