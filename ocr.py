@@ -77,3 +77,10 @@ def calculate_accuracy(ground_truth, predictions):
     correct = sum(1 for gt, pred in zip(ground_truth, predictions) if gt.strip().lower() == pred.strip().lower())
     accuracy = correct / total * 100
     return accuracy
+
+def convert_string(input_string):
+    # Replace 'i' with '1'
+    result = input_string.replace('I', '1').replace('i', '1').replace(' ', '')
+    # Replace 'n' with '7'
+    result = result.replace('n', '7')
+    return result
