@@ -134,7 +134,7 @@ def send_value_back(high_val, low_val, pulse_val):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
 
 
 

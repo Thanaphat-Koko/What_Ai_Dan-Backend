@@ -1,20 +1,32 @@
 # start by pulling the python image
-FROM python:3.10-slim
+FROM ubuntu:20.04
 
-# copy the requirements file into the image
-COPY ./requirements.txt /app/requirements.txt
+# Set the maintainer label
+LABEL maintainer="backend@WhatAiDan.com"
+
+# Set environment variables to prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update the package list and install necessary packages
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    apt-get clean
 
 # switch working directory
 WORKDIR /app
+    
+# copy the requirements file into the image
+COPY ./requirements.txt /app/requirements.txt
 
 # install the dependencies and packages in the requirements file
 RUN apt-get install python-opencv -y && \
-pip install -r requirements.txt 
+pip3 install -r requirements.txt 
 
 # copy every content from the local file to the image
 COPY . /app
 
-# configure the container to run in an executed manner
-ENTRYPOINT [ "python" ]
+# Expose the port the app runs on
+EXPOSE 5000
 
-CMD ["app.py" ]
+# Define the command to run the Flask application
+CMD ["python3", "app.py"]
