@@ -19,7 +19,7 @@ WORKDIR /app
 COPY ./requirements.txt /app/requirements.txt
 
 # install the dependencies and packages in the requirements file
-RUN apt-get install python-opencv -y && \
+RUN apt-get install python3-opencv -y && \
 pip3 install -r requirements.txt 
 
 # copy every content from the local file to the image

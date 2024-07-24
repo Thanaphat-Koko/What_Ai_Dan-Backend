@@ -60,7 +60,7 @@ def upload_image():
 
         high_val_img = crop_img[60:190, 100:372]
         low_val_img = crop_img[198:323, 100:372]
-        pulse_val_img = crop_img[335:435, 200:372]
+        pulse_val_img = crop_img[335:440, 200:372]
 
         #res = cv2.adaptiveThreshold(high_val_img, 200, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
